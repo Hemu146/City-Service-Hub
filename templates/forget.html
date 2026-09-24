@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forgot Password | City Service Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/stylee.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-white" href="#">City Service Hub</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav align-items-center">
+          <li class="nav-item"><a class="nav-link active" href="{% url 'home' %}">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'services' %}">Services</a></li>
+          <li class="nav-item ms-3">
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm">+ Login</a>          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Forgot Password Section -->
+  <section class="register-section d-flex align-items-center justify-content-center text-center" style="min-height:100vh;">
+    <div class="overlay"></div>
+    <div class="container position-relative">
+      <h1 class="text-white mb-4 fw-bold " style="margin-top: 150px;">Forgot Password</h1>
+      <p class="text-light mb-4">Reset your password using your registered phone number.</p>
+
+      <form class="register-form mx-auto p-4 rounded-3 login-box">
+        
+        <!-- Phone Number -->
+        <div class="mb-3 text-start">
+          <label for="phone" class="form-label text-light">Phone Number</label>
+          <input type="text" id="phone" class="form-control" placeholder="Enter your phone number" required>
+        </div>
+
+        <!-- Send OTP -->
+        <div class="d-grid mb-3">
+          <button type="button" class="btn btn-pink">Send OTP</button>
+        </div>
+
+        <!-- OTP -->
+        <div class="mb-3 text-start">
+          <label for="otp" class="form-label text-light">Enter OTP</label>
+          <input type="text" id="otp" class="form-control" placeholder="Enter OTP" required>
+        </div>
+
+        <!-- New Password -->
+        <div class="mb-3 text-start">
+          <label for="newPassword" class="form-label text-light">New Password</label>
+          <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" required>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="mb-3 text-start">
+          <label for="confirmPassword" class="form-label text-light">Confirm Password</label>
+          <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password" required>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="d-grid mb-2">
+          <button type="submit" class="btn btn-pink">Reset Password</button>
+        </div>
+
+        <p class="text-light mt-3">
+          Remembered your password?  <a href="{%url 'login'%}" class="text-pink">Login</a> 
+        </p>
+      </form>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

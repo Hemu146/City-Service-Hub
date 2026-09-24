@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+  <meta charset="utf-8" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
+      rel="stylesheet">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Service Provider Profile — Dynamic Frontend</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/stylee.css' %}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+</head>
+<body style="margin-top: 100px;">
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-white" href="#">City Service Hub</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+  
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav align-items-center">
+          <li class="nav-item ms-3">
+            <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">Logout</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+<div class="d-flex mt-3 mb-5">
+  <!-- Sidebar -->
+  <div class="bg-dark p-3" style="min-width: 220px; min-height: 100vh; border-right: 1px solid #222;">
+    <h5 class="text-white mb-4">{{ provider.name }}</h5>
+    <ul class="nav nav-pills flex-column gap-2">
+      <li class="nav-item">
+        <button class="nav-link active w-100 text-start" data-section="provider-services-section">📦 My Services</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link w-100 text-start" data-section="provider-stats-section">📊 Stats</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link w-100 text-start" data-section="provider-bookings-section">📅 Bookings</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link w-100 text-start" data-section="provider-profile-section">👤 Profile</button>
+      </li>
+      <li class="nav-item mt-3">
+        <button id="openAddServiceBtnSidebar" class="btn btn-outline-success w-100" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+          + Add Service
+        </button>
+      </li>
+      <li class="nav-item mt-3">
+        <a href="{% url 'logout' %}" class="btn btn-outline-light w-100">Logout</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main content -->
+  <div class="container mt-3 mb-5">
+  <!-- Provider stats summary -->
+  <div id="provider-stats-section" class="row g-3 mb-4 dashboard-section d-none">
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Total Services</h6>
+          <h3 class="fw-bold text-primary mb-0">{{ total_services }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Approved</h6>
+          <h3 class="fw-bold text-success mb-0">{{ approved_services }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Pending Approval</h6>
+          <h3 class="fw-bold text-warning mb-0">{{ pending_services }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Total Bookings</h6>
+          <h3 class="fw-bold text-info mb-0">{{ total_bookings }}</h3>
+          <p class="small text-muted mb-0">
+            Pending: {{ pending_bookings }} · Accepted: {{ accepted_bookings }} · Completed: {{ completed_bookings }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Services distribution chart -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted mb-3">Services by Type</h6>
+          <canvas id="servicesByTypeChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="provider-profile-section" class="profile-header d-flex flex-wrap justify-content-between align-items-center p-4 mb-4 dashboard-section d-none">
+    <div class="d-flex align-items-start flex-wrap">
+      <div class="text-center me-4">
+        <img src="{% if user and user.photo %}{{ user.photo.url }}{% else %}https://i.pravatar.cc/120?img=3{% endif %}" class="rounded-circle mb-2 border border-2 border-light" alt="Owner" width="120" height="120">
+        <h4 class="text-white fw-semibold mb-1">{{ provider.name }}</h4>
+        <p class="text-muted mb-0">Service Provider - City Service Hub</p>
+      </div>
+      <div class="text-start" style="margin-top:80px;">
+        <p class="mb-1 text-white "><strong>📞</strong> {{ provider.phone }}</p>
+        <p class="mb-1 text-white "><strong>🌐</strong> {{ provider.email }}</p>
+        <p class="mb-1 text-white "><strong>📍</strong> {{ provider.address }}</p>
+      </div>
+    </div>
+
+    <div class="text-end mt-5 mb-0">
+      <button class="btn btn-outline-warning mb-2" data-bs-toggle="modal" data-bs-target="#editProfileModal">+ Edit Profile</button><br>
+      <div class="text-end mb-3">
+        <button id="openAddServiceBtn" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+          + Add Service
+        </button>
+      </div>
+    
+    </div>
+  </div>
+
+  <div id="provider-services-section" class="dashboard-section">
+    <div id="servicesRow" class="row g-4 mt-3">
+      <!-- service cards will be injected here -->
+    </div>
+  </div>
+
+  <!-- Provider bookings section -->
+  <div id="provider-bookings-section" class="dashboard-section d-none mt-4">
+    <h4 class="mb-3 text-white">Bookings for Your Services</h4>
+    {% if provider_bookings %}
+      <div class="table-responsive">
+        <table class="table table-dark table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>User</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th>Booked On</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in provider_bookings %}
+            <tr>
+              <td>{{ b.service.name }}</td>
+              <td>{{ b.user.name }}</td>
+              <td>{{ b.service_date|date:"M d, Y" }}</td>
+              <td>{{ b.time_slot }}</td>
+              <td>{{ b.quantity }}</td>
+              <td>{{ b.get_status_display }}</td>
+              <td>{{ b.created_at|date:"M d, Y H:i" }}</td>
+              <td>
+                <div class="d-flex gap-1">
+                  {% if b.status == "pending" %}
+                    <form method="post" action="{% url 'update_booking_status' b.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="accept">
+                      <button type="submit" class="btn btn-sm btn-outline-success">Accept</button>
+                    </form>
+                    <form method="post" action="{% url 'update_booking_status' b.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="reject">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                    </form>
+                  {% elif b.status == "accepted" %}
+                    <form method="post" action="{% url 'update_booking_status' b.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="complete">
+                      <button type="submit" class="btn btn-sm btn-outline-primary">Mark Completed</button>
+                    </form>
+                  {% else %}
+                    <span class="badge bg-secondary">No actions</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">No bookings yet for your services.</p>
+    {% endif %}
+  </div>
+
+ 
+
+  <footer class="text-center py-4 mt-5 text-muted">
+    <small>© 2025 ServiceHub. All rights reserved.</small>
+  </footer>
+</div>
+
+<!-- Edit Profile Modal (keeps minimal) -->
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#000; border-radius:12px; border:1px solid rgba(255,255,255,0.1);">
+
+      <!-- Header -->
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white fw-bold">Edit Profile</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body text-white px-4">
+
+     
+
+        <label class="form-label">Full Name</label>
+    <input type="text" class="form-control mb-3" id="edit_fullname" value="{{ provider.name }}">
+
+    <!-- Phone -->
+    <label class="form-label">Phone</label>
+    <input type="text" class="form-control mb-3" id="edit_phone" value="{{ provider.phone }}">
+
+    <!-- Address -->
+    <label class="form-label">Address</label>
+    <textarea class="form-control mb-3" id="edit_address" rows="2">{{ provider.address }}</textarea>
+
+</div>
+
+<!-- Modal Footer -->
+<div class="modal-footer border-0 d-flex justify-content-end">
+    <button class="btn btn-outline-light px-4" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn px-4" style="background:#ff3a75; color:white;" id="saveProfileBtn">Save</button>
+</div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add Service Modal -->
+<div class="modal fade" id="addServiceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content text-light" style="background: rgba(0,0,0,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-semibold text-white">Add New Service</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="addServiceForm" class="p-3">
+          <div class="row g-3">
+            <div class="col-md-6">
+              {% csrf_token %}
+              <label class="form-label text-light">{{addservice.name.label}}</label>
+              
+             
+                {{addservice.name}}
+              
+              {% comment %} <input type="text" class="form-control" id="svc_name" placeholder="Enter service name" required> {% endcomment %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{addservice.type.label}}</label>
+              {{addservice.type}}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{addservice.price.label}}</label>
+              {{addservice.price}}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label text-light">{{addservice.description.label}}</label>
+              {{addservice.description}}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{addservice.address.label}}</label>
+             {{addservice.address}}
+              {% comment %} <input type="text" class="form-control" id="svc_addr" placeholder="Enter address"> {% endcomment %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{addservice.phone.label}}</label>
+             {{addservice.phone}}
+              {% comment %} <input type="text" class="form-control" id="svc_phone" placeholder="Enter phone number"> {% endcomment %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{addservice.open_time.label}}</label>
+              {{addservice.open_time}}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{addservice.close_time.label}}</label>
+             {{addservice.close_time}}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">{{ addservice.image.label }}</label>
+             {{ addservice.image }}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label text-light">Required Documents (Based on Service Type)</label>
+              <div id="document_uploads" class="mb-3">
+                <p class="small text-muted">Documents will appear based on selected service type</p>
+                <!-- Documents will be dynamically added via JavaScript -->
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label text-light">Menu Items (Name — Price)</label>
+              <div id="svc_menu_rows" class="mb-2">
+                <!-- initial row -->
+              </div>
+              <p class="small text-muted">Use the (+) button on the right of a row to add a new item. Use the trash icon to remove a row.</p>
+            </div>
+            
+            <!-- Hidden inputs for menu items (will be populated by JS) -->
+            <div id="menu_inputs_container"></div>
+
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-pink" id="saveServiceBtn">Save Service</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Service Modal (shared UI for editing existing) -->
+<div class="modal fade" id="editServiceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content text-light" style="background: rgba(0,0,0,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-semibold text-white">Edit Service</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editServiceForm" class="p-3">
+          <input type="hidden" id="edit_svc_id">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-light">Service Name</label>
+              <input type="text" class="form-control" id="edit_svc_name">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Service Type</label>
+              <select id="edit_svc_type" class="form-select">
+                <option value="">Select Type</option>
+                <option value="tiffin">Tiffin Service</option>
+                <option value="laundry">Laundry</option>
+                <option value="water">Water Supplier</option>
+                <option value="cook">Cook</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Service Price (₹)</label>
+              <input type="number" class="form-control" id="edit_svc_price" step="0.01" min="0" placeholder="Enter base service price">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label text-light">Description</label>
+              <textarea class="form-control" id="edit_svc_desc" rows="2"></textarea>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Address</label>
+              <input type="text" class="form-control" id="edit_svc_addr">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Contact Number</label>
+              <input type="text" class="form-control" id="edit_svc_phone">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Opening Time</label>
+              <input type="time" class="form-control" id="edit_svc_open">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Closing Time</label>
+              <input type="time" class="form-control" id="edit_svc_close">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light">Upload Service Image</label>
+              <input type="file" class="form-control" accept="image/*" id="edit_svc_image">
+            </div>
+            
+            <div class="col-12">
+              <label class="form-label text-light">Menu Items (Name — Price)</label>
+              <div id="edit_svc_menu_rows" class="mb-2"></div>
+              <p class="small text-muted">Use the (+) button on the right of a row to add a new item. Use the trash icon to remove a row.</p>
+            </div>
+            
+            <!-- Hidden inputs for menu items (will be populated by JS) -->
+            <div id="edit_menu_inputs_container"></div>
+
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-pink" id="updateServiceBtn">Update Service</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+(() => {
+  const servicesRow = document.getElementById('servicesRow');
+  
+  // Services data from Django backend
+  const servicesData = {{ services_json|safe }};
+  let services = [];
+
+  // Convert Django services to JavaScript format
+  function convertServices() {
+    services = servicesData.map(svc => ({
+      id: svc.id,
+      name: svc.name,
+      type: svc.type,
+      description: svc.description || '',
+      address: svc.address || '',
+      phone: svc.phone || '',
+      openTime: svc.open_time || '',
+      closeTime: svc.close_time || '',
+      imageUrl: svc.image ? svc.image.url : '',
+      menu: svc.menu || []
+    }));
+  }
+
+  function uid(prefix='id') {
+    return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  function timeToMinutes(t) {
+    if(!t) return null;
+    if(typeof t === 'string' && t.includes(':')) {
+      const [h,m] = t.split(':').map(Number);
+      return h*60 + m;
+    }
+    return null;
+  }
+
+  function isOpenNow(openTime, closeTime) {
+    if(!openTime || !closeTime) return false;
+    const now = new Date();
+    const minutes = now.getHours()*60 + now.getMinutes();
+    const o = timeToMinutes(openTime);
+    const c = timeToMinutes(closeTime);
+    if(o <= c) return (minutes >= o && minutes < c);
+    // overnight (close next day)
+    return (minutes >= o || minutes < c);
+  }
+
+  function renderServices() {
+    servicesRow.innerHTML = '';
+    if(services.length === 0) {
+      servicesRow.innerHTML = '<div class="col-12"><p class="text-white text-center">No services added yet. Click "Add Service" to get started.</p></div>';
+      return;
+    }
+    
+    services.forEach(svc => {
+      const col = document.createElement('div');
+      col.className = 'col-md-6 col-lg-4';
+      const menuId = uid('menu');
+      const openNow = isOpenNow(svc.openTime, svc.closeTime);
+      const openText = svc.openTime ? svc.openTime : '--';
+      const closeText = svc.closeTime ? svc.closeTime : '--';
+      const imageSrc = svc.imageUrl || '{% static "images/slider.jpg" %}';
+      
+      col.innerHTML = `
+        <div class="service-card position-relative">
+          <img src="${imageSrc}" alt="${escapeHtml(svc.name)}" style="width:100%; height:200px; object-fit:cover;">
+          <div class="p-3">
+            <h5>${escapeHtml(svc.name)}</h5>
+            <p>${escapeHtml(svc.type || '')}</p>
+            <p>${escapeHtml(svc.address || '')}</p>
+            <p>${escapeHtml(svc.phone || '')}</p>
+            <p class="mb-1"><strong>Opening Time:</strong> ${openText}</p>
+            <p class="mb-2"><strong>Closing Time:</strong> ${closeText}</p>
+            <p class="fw-semibold mb-2" style="color:${openNow?'#28a745':'#dc3545'}">${openNow? 'OPEN NOW':'CLOSED NOW'}</p>
+
+            <div class="menu-section mb-3">
+              <button class="btn btn-outline-info btn-sm w-100" data-bs-toggle="collapse" data-bs-target="#${menuId}" aria-controls="${menuId}">
+                Menu ▾
+              </button>
+              <div class="collapse mt-2" id="${menuId}">
+                <ul class="list-group small" id="menu-list-${svc.id}">
+                </ul>
+              </div>
+            </div>
+
+            <div class="service-actions">
+              <button class="btn btn-outline-success btn-sm edit-svc-btn" data-id="${svc.id}">Edit</button>
+              <button class="btn btn-outline-danger btn-sm delete-svc-btn" data-id="${svc.id}">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+      servicesRow.appendChild(col);
+
+      const menuList = document.getElementById(`menu-list-${svc.id}`);
+      if(svc.menu && svc.menu.length > 0){
+        svc.menu.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-center';
+          li.innerHTML = `<span>${escapeHtml(item.name)}</span><strong>₹${escapeHtml(item.price)}</strong>`;
+          menuList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.className = 'list-group-item text-muted';
+        li.textContent = 'No menu items';
+        menuList.appendChild(li);
+      }
+    });
+  }
+
+  function escapeHtml(str){
+    if(!str && str!==0) return '';
+    return String(str).replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[s]));
+  }
+
+  // MENU ROW helper
+  function createMenuRow(name='', price=''){
+    const row = document.createElement('div');
+    row.className = 'menu-row d-flex gap-2 mb-2';
+    row.innerHTML = `
+      <input type="text" class="form-control menu-name" placeholder="Menu item name" value="${escapeAttr(name)}">
+      <input type="text" class="form-control menu-price" placeholder="Price" value="${escapeAttr(price)}" style="max-width:120px;">
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-success btn-sm add-row-btn" title="Add row">+</button>
+        <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn" title="Remove row">🗑</button>
+      </div>
+    `;
+    return row;
+  }
+
+  function escapeAttr(s){ if(!s && s!==0) return ''; return String(s).replace(/"/g,'&quot;'); }
+
+  // initialize add modal with one row
+  const svcMenuRows = document.getElementById('svc_menu_rows');
+  function initAddModalRows(){
+    svcMenuRows.innerHTML = '';
+    svcMenuRows.appendChild(createMenuRow());
+  }
+  initAddModalRows();
+
+  // Event delegation for add modal menu actions
+  document.getElementById('addServiceModal').addEventListener('click', (ev) => {
+    if(ev.target.matches('.add-row-btn')){
+      const parent = ev.target.closest('.menu-row');
+      const newRow = createMenuRow();
+      parent.insertAdjacentElement('afterend', newRow);
+    } else if(ev.target.matches('.remove-row-btn')){
+      const parent = ev.target.closest('.menu-row');
+      if(parent){
+        const container = parent.parentNode;
+        if(container.querySelectorAll('.menu-row').length > 1){
+          parent.remove();
+        } else {
+          parent.querySelector('.menu-name').value = '';
+          parent.querySelector('.menu-price').value = '';
+        }
+      }
+    }
+  });
+
+  // Edit modal menu row delegation
+  document.getElementById('editServiceModal').addEventListener('click', (ev) => {
+    if(ev.target.matches('.add-row-btn')){
+      const parent = ev.target.closest('.menu-row');
+      const newRow = createMenuRow();
+      parent.insertAdjacentElement('afterend', newRow);
+    } else if(ev.target.matches('.remove-row-btn')){
+      const parent = ev.target.closest('.menu-row');
+      if(parent){
+        const container = parent.parentNode;
+        if(container.querySelectorAll('.menu-row').length > 1){
+          parent.remove();
+        } else {
+          parent.querySelector('.menu-name').value = '';
+          parent.querySelector('.menu-price').value = '';
+        }
+      }
+    }
+  });
+
+  // Get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // Save new service
+  document.getElementById('saveServiceBtn').addEventListener('click', async () => {
+    const form = document.getElementById('addServiceForm');
+    const formData = new FormData(form);
+    
+    // Get menu items
+    const menuNodes = Array.from(document.querySelectorAll('#svc_menu_rows .menu-row'));
+    menuNodes.forEach(n => {
+      const name = n.querySelector('.menu-name').value.trim();
+      const price = n.querySelector('.menu-price').value.trim();
+      if(name || price) {
+        formData.append('menu_name', name);
+        formData.append('menu_price', price);
+      }
+    });
+
+    try {
+      const response = await fetch('{% url "add_service" %}', {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrftoken
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if(data.success) {
+        alert('Service added successfully!');
+        location.reload();
+      } else {
+        alert('Error: ' + (data.error || JSON.stringify(data.errors) || 'Failed to add service'));
+      }
+    } catch(error) {
+      alert('Error: ' + error.message);
+    }
+  });
+
+  // Delete service
+  servicesRow.addEventListener('click', async (ev) => {
+    const delBtn = ev.target.closest('.delete-svc-btn');
+    if(delBtn){
+      const id = delBtn.getAttribute('data-id');
+      if(confirm('Delete this service?')) {
+        try {
+          const response = await fetch(`/delete-service/${id}/`, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': csrftoken
+            }
+          });
+
+          const data = await response.json();
+          if(data.success) {
+            alert('Service deleted successfully!');
+            location.reload();
+          } else {
+            alert('Error: ' + (data.error || 'Failed to delete service'));
+          }
+        } catch(error) {
+          alert('Error: ' + error.message);
+        }
+      }
+      return;
+    }
+
+    // Edit service
+    const editBtn = ev.target.closest('.edit-svc-btn');
+    if(editBtn){
+      const id = editBtn.getAttribute('data-id');
+      
+      try {
+        const response = await fetch(`/edit-service/${id}/`, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken
+          }
+        });
+
+        const data = await response.json();
+        if(data.success) {
+          const svc = data.service;
+          document.getElementById('edit_svc_id').value = svc.id;
+          document.getElementById('edit_svc_name').value = svc.name || '';
+          document.getElementById('edit_svc_type').value = svc.type || '';
+          document.getElementById('edit_svc_price').value = svc.price || '';
+          document.getElementById('edit_svc_desc').value = svc.description || '';
+          document.getElementById('edit_svc_addr').value = svc.address || '';
+          document.getElementById('edit_svc_phone').value = svc.phone || '';
+          document.getElementById('edit_svc_open').value = svc.open_time || '';
+          document.getElementById('edit_svc_close').value = svc.close_time || '';
+
+          const editRows = document.getElementById('edit_svc_menu_rows');
+          editRows.innerHTML = '';
+          if(svc.menu && svc.menu.length > 0){
+            svc.menu.forEach(it => editRows.appendChild(createMenuRow(it.name, it.price)));
+          } else {
+            editRows.appendChild(createMenuRow());
+          }
+
+          const editModal = new bootstrap.Modal(document.getElementById('editServiceModal'));
+          editModal.show();
+        } else {
+          alert('Error loading service: ' + (data.error || 'Unknown error'));
+        }
+      } catch(error) {
+        alert('Error: ' + error.message);
+      }
+    }
+  });
+
+  // Update service
+  document.getElementById('updateServiceBtn').addEventListener('click', async () => {
+    const id = document.getElementById('edit_svc_id').value;
+    const formData = new FormData();
+    
+    formData.append('name', document.getElementById('edit_svc_name').value);
+    formData.append('type', document.getElementById('edit_svc_type').value);
+    formData.append('price', document.getElementById('edit_svc_price').value);
+    formData.append('description', document.getElementById('edit_svc_desc').value);
+    formData.append('address', document.getElementById('edit_svc_addr').value);
+    formData.append('phone', document.getElementById('edit_svc_phone').value);
+    formData.append('open_time', document.getElementById('edit_svc_open').value);
+    formData.append('close_time', document.getElementById('edit_svc_close').value);
+    
+    const imgInput = document.getElementById('edit_svc_image');
+    if(imgInput.files && imgInput.files[0]) {
+      formData.append('image', imgInput.files[0]);
+    }
+
+    // Get menu items
+    const menuNodes = Array.from(document.querySelectorAll('#edit_svc_menu_rows .menu-row'));
+    menuNodes.forEach(n => {
+      const name = n.querySelector('.menu-name').value.trim();
+      const price = n.querySelector('.menu-price').value.trim();
+      if(name || price) {
+        formData.append('menu_name', name);
+        formData.append('menu_price', price);
+      }
+    });
+
+    try {
+      const response = await fetch(`/edit-service/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrftoken
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if(data.success) {
+        alert('Service updated successfully!');
+        location.reload();
+      } else {
+        alert('Error: ' + (data.error || JSON.stringify(data.errors) || 'Failed to update service'));
+      }
+    } catch(error) {
+      alert('Error: ' + error.message);
+    }
+  });
+
+  // When opening Add Modal, ensure at least one menu row present
+  document.getElementById('openAddServiceBtn').addEventListener('click', () => {
+    initAddModalRows();
+  });
+  const openAddServiceBtnSidebar = document.getElementById('openAddServiceBtnSidebar');
+  if (openAddServiceBtnSidebar) {
+    openAddServiceBtnSidebar.addEventListener('click', () => {
+      initAddModalRows();
+    });
+  }
+
+  // Profile save (demo - can be extended later)
+  // Profile save
+  document.getElementById("saveProfileBtn").addEventListener("click", function () {
+
+const formData = new FormData();
+formData.append("name", document.getElementById("edit_fullname").value);
+formData.append("phone", document.getElementById("edit_phone").value);
+formData.append("address", document.getElementById("edit_address").value);
+
+fetch("{% url 'update_profile' %}", {
+    method: "POST",
+    headers: {
+        "X-CSRFToken": csrftoken,
+        "X-Requested-With": "XMLHttpRequest",
+    },
+    body: formData
+})
+.then(response => response.json())
+.then(data => {
+    if (data.success) {
+        alert("Profile updated successfully!");
+        location.reload();
+    } else {
+        alert("Error updating profile");
+        console.log(data);
+    }
+})
+.catch(error => console.error(error));
+});
+
+  // Document upload fields based on service type
+  const documentMapping = {
+    'tiffin': [
+      {type: 'food_license', label: 'Food License'},
+      {type: 'working_place', label: 'Working Place Document'}
+    ],
+    'laundry': [
+      {type: 'shop_license', label: 'Shop License'},
+      {type: 'gst_registration', label: 'GST Registration'}
+    ],
+    'water': [
+      {type: 'driving_license', label: 'Driving License'},
+      {type: 'noc_document', label: 'NOC Document'}
+    ],
+    'cook': [
+      {type: 'food_license', label: 'Food License'}
+    ]
+  };
+
+  function updateDocumentFields() {
+    const serviceType = document.getElementById('id_type').value;
+    const docContainer = document.getElementById('document_uploads');
+    if(!docContainer) return;
+    
+    docContainer.innerHTML = '';
+    
+    if(serviceType && documentMapping[serviceType]) {
+      documentMapping[serviceType].forEach(doc => {
+        const div = document.createElement('div');
+        div.className = 'mb-2';
+        div.innerHTML = `
+          <label class="form-label text-light">${doc.label}</label>
+          <input type="file" class="form-control" name="document_${doc.type}" accept=".pdf,.jpg,.jpeg,.png">
+        `;
+        docContainer.appendChild(div);
+      });
+    } else {
+      docContainer.innerHTML = '<p class="small text-muted">Select a service type to see required documents</p>';
+    }
+  }
+
+  // Watch for service type changes
+  const typeField = document.getElementById('id_type');
+  if(typeField) {
+    typeField.addEventListener('change', updateDocumentFields);
+    updateDocumentFields(); // Initial call
+  }
+
+  // Initialize
+  convertServices();
+  renderServices();
+
+  // ==========================
+  // Chart: Services by type
+  // ==========================
+  const chartLabels = {{ chart_labels|safe }};
+  const chartValues = {{ chart_values|safe }};
+
+  const chartCanvas = document.getElementById('servicesByTypeChart');
+  if (chartCanvas && Array.isArray(chartLabels) && chartLabels.length) {
+    const ctx = chartCanvas.getContext('2d');
+    // Simple color palette
+    const baseColors = [
+      'rgba(255, 99, 132, 0.7)',
+      'rgba(54, 162, 235, 0.7)',
+      'rgba(255, 206, 86, 0.7)',
+      'rgba(75, 192, 192, 0.7)',
+      'rgba(153, 102, 255, 0.7)',
+      'rgba(255, 159, 64, 0.7)',
+    ];
+    const borderColors = baseColors.map(c => c.replace('0.7', '1'));
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: 'Number of Services',
+          data: chartValues,
+          backgroundColor: baseColors.slice(0, chartLabels.length),
+          borderColor: borderColors.slice(0, chartLabels.length),
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.parsed.y} service(s)`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            precision: 0,
+            ticks: {
+              stepSize: 1,
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Sidebar navigation between sections
+  const sectionButtons = document.querySelectorAll('[data-section]');
+  const sections = document.querySelectorAll('.dashboard-section');
+
+  function showSection(targetId) {
+    sections.forEach(sec => {
+      if (sec.id === targetId) {
+        sec.classList.remove('d-none');
+      } else {
+        sec.classList.add('d-none');
+      }
+    });
+  }
+
+  sectionButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sectionButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.getAttribute('data-section');
+      showSection(target);
+    });
+  });
+
+  // Default visible section
+  showSection('provider-services-section');
+
+})();
+</script>
+</body>
+</html>

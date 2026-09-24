@@ -1,0 +1,433 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard - City Service Hub</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/stylee.css' %}">
+
+  <style>
+    body {
+      background: #0d0d0d;
+      color: #fff;
+    }
+    .dashboard-header {
+      margin-top: 90px;
+      text-align: center;
+    }
+    .dashboard-header h2 {
+      font-weight: 700;
+      font-size: 2rem;
+    }
+    .favorite-card {
+      background: #121212;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: 0.3s;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .favorite-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0px 10px 25px rgba(0,0,0,0.4);
+    }
+    .favorite-card img {
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .favorite-body {
+      padding: 15px;
+    }
+    .favorite-body h5 {
+      font-weight: 600;
+    }
+    .remove-favorite-btn {
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      background: #111;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .nav-link {
+      color: #fff !important;
+      margin-right: 15px;
+      font-weight: 500;
+    }
+    .nav-link:hover {
+      color: #f8d210 !important;
+    }
+    .dashboard-section.d-none {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Layout with sidebar -->
+  <div class="d-flex" style="margin-top: 80px;">
+    <!-- Sidebar -->
+    <div class="bg-dark p-3" style="min-width: 220px; min-height: 100vh; border-right: 1px solid #222;">
+      <h5 class="text-white mb-4">Hi, {{ user.name }}</h5>
+      <ul class="nav nav-pills flex-column gap-2">
+        <li class="nav-item">
+          <button class="nav-link active w-100 text-start" data-section="favorites-section">⭐ Favorites</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link w-100 text-start" data-section="bookings-section">📦 My Bookings</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link w-100 text-start" data-section="book-services-section">🔍 Book Services</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link w-100 text-start" data-section="profile-section">👤 Profile</button>
+        </li>
+        <li class="nav-item mt-3">
+          <a href="{% url 'logout' %}" class="btn btn-outline-light w-100">Logout</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Main content -->
+    <div class="container-fluid mt-3">
+      <!-- Header -->
+      <div class="dashboard-header">
+        <h2>User Dashboard</h2>
+        <p class="text-muted">Manage your favorites, bookings, and profile.</p>
+      </div>
+
+      <!-- Favorites section -->
+      <section id="favorites-section" class="mt-4 dashboard-section">
+        {% if favorites %}
+          <div class="row g-4">
+            {% for favorite in favorites %}
+            <div class="col-md-6 col-lg-4">
+              <div class="favorite-card">
+
+                {% if favorite.service.image %}
+                  <img src="{{ favorite.service.image.url }}" class="w-100" height="200" style="object-fit: cover;">
+                {% else %}
+                  <img src="{% static 'images/slider.jpg' %}" class="w-100" height="200" style="object-fit: cover;">
+                {% endif %}
+
+                <div class="favorite-body">
+                  <h5>{{ favorite.service.name }}</h5>
+                  <p><strong>Type:</strong> {{ favorite.service.get_type_display }}</p>
+                  {% if favorite.service.price %}
+                    <p><strong>Price:</strong> ₹{{ favorite.service.price }}</p>
+                  {% endif %}
+                  <p><strong>Address:</strong> {{ favorite.service.address }}</p>
+                  <p><strong>Phone:</strong> {{ favorite.service.phone }}</p>
+
+                  <div class="d-flex gap-2 mt-2">
+                    <button class="btn btn-danger btn-sm remove-favorite-btn w-100"
+                      data-service-id="{{ favorite.service.id }}">
+                      Remove Favorite
+                    </button>
+                    <form method="post" action="{% url 'book_service' favorite.service.id %}">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-success btn-sm">Book</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state mt-3">
+            <h4>No Favorites Yet</h4>
+            <p class="text-muted mt-2">
+              You haven't added any services to favorites.<br>
+              <a href="{% url 'services' %}" class="text-warning">Browse services</a> to start adding!
+            </p>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Bookings section -->
+      <section id="bookings-section" class="mt-4 dashboard-section d-none">
+        <h4 class="mb-3">My Bookings</h4>
+        {% if bookings %}
+          <div class="table-responsive">
+            <table class="table table-dark table-striped align-middle">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Qty</th>
+                  <th>Status</th>
+                  <th>Booked On</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in bookings %}
+                <tr>
+                  <td>{{ b.service.name }}</td>
+                  <td>{{ b.service.get_type_display }}</td>
+                  <td>{{ b.service_date|date:"M d, Y" }}</td>
+                  <td>{{ b.time_slot }}</td>
+                  <td>{{ b.quantity }}</td>
+                  <td>{{ b.get_status_display }}</td>
+                  <td>{{ b.created_at|date:"M d, Y H:i" }}</td>
+                  <td>
+                    {% if b.status == "pending" or b.status == "accepted" %}
+                      <form method="post" action="{% url 'cancel_booking' b.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          Cancel
+                        </button>
+                      </form>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state mt-3">
+            <h4>No Bookings Yet</h4>
+            <p class="text-muted mt-2">
+              You haven't booked any services yet.<br>
+              <a href="{% url 'services' %}" class="text-warning">Browse services</a> to make your first booking!
+            </p>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Profile section -->
+      <section id="profile-section" class="mt-4 dashboard-section d-none">
+        <h4 class="mb-3">Profile</h4>
+        <div class="card bg-dark border-0">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4 text-center mb-3">
+                {% if user.photo %}
+                  <img src="{{ user.photo.url }}" class="rounded-circle border border-2" width="120" height="120" style="object-fit:cover;">
+                {% else %}
+                  <img src="{% static 'images/slider.jpg' %}" class="rounded-circle border border-2" width="120" height="120" style="object-fit:cover;">
+                {% endif %}
+                <p class="mt-2 mb-0 fw-semibold">{{ user.name }}</p>
+                <span class="badge bg-secondary text-uppercase mt-1">{{ user.get_status_display }}</span>
+              </div>
+              <div class="col-md-8">
+                <form method="post" action="{% url 'update_user_profile' %}" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label class="form-label text-light">{{ profile_form.name.label }}</label>
+                    {{ profile_form.name }}
+                    <div class="text-danger small">{{ profile_form.name.errors }}</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-light">{{ profile_form.email.label }}</label>
+                    {{ profile_form.email }}
+                    <div class="text-danger small">{{ profile_form.email.errors }}</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-light">{{ profile_form.phone.label }}</label>
+                    {{ profile_form.phone }}
+                    <div class="text-danger small">{{ profile_form.phone.errors }}</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-light">{{ profile_form.adress.label }}</label>
+                    {{ profile_form.adress }}
+                    <div class="text-danger small">{{ profile_form.adress.errors }}</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-light">{{ profile_form.gender.label }}</label>
+                    {{ profile_form.gender }}
+                    <div class="text-danger small">{{ profile_form.gender.errors }}</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-light">{{ profile_form.photo.label }}</label>
+                    {{ profile_form.photo }}
+                    <div class="text-danger small">{{ profile_form.photo.errors }}</div>
+                  </div>
+                  <button type="submit" class="btn btn-pink">Save Changes</button>
+                </form>
+              </div>
+            </div>
+            <hr class="border-secondary">
+            <p class="text-muted small mb-0">
+              Your profile updates will be used for future bookings and communication.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Book Services section -->
+      <section id="book-services-section" class="mt-4 dashboard-section d-none">
+        <h4 class="mb-3">Book Services</h4>
+        {% if booking_services %}
+          <div class="row g-4">
+            {% for item in booking_services %}
+            <div class="col-md-6 col-lg-4">
+              <div class="favorite-card">
+                <img src="{% if item.image_url %}{{ item.image_url }}{% else %}{% static 'images/slider.jpg' %}{% endif %}"
+                     class="w-100" height="200" style="object-fit:cover;">
+                <div class="favorite-body">
+                  <h5>{{ item.service.name }}</h5>
+                  <p><strong>Type:</strong> {{ item.service.get_type_display }}</p>
+                  {% if item.service.price %}
+                    <p><strong>Price:</strong> ₹{{ item.service.price }}</p>
+                  {% endif %}
+                  <p><strong>Address:</strong> {{ item.service.address }}</p>
+                  <p><strong>Phone:</strong> {{ item.service.phone }}</p>
+
+                  <form method="post" action="{% url 'book_service' item.service.id %}" class="mt-2">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                      <label class="form-label small">Date</label>
+                      <input type="date" name="service_date" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small">Time Slot</label>
+                      {% if item.time_slots %}
+                        <select name="time_slot" class="form-select form-select-sm" required>
+                          <option value="">Select a time</option>
+                          {% for slot in item.time_slots %}
+                            <option value="{{ slot }}">{{ slot }}</option>
+                          {% endfor %}
+                        </select>
+                      {% else %}
+                        <input type="time" name="time_slot" class="form-control form-control-sm" required>
+                      {% endif %}
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small">Quantity</label>
+                      <input type="number" name="quantity" min="1" value="1" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <button
+                        type="submit"
+                        class="btn btn-sm btn-success">
+                        Book Service
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state mt-3">
+            <h4>No Services Available</h4>
+            <p class="text-muted mt-2">
+              There are currently no approved services to book. Please check back later.
+            </p>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Help section -->
+      <section id="help-section" class="mt-4 dashboard-section d-none">
+        <h4 class="mb-3">Help & Support</h4>
+        <div class="card bg-dark border-0">
+          <div class="card-body">
+            <p class="text-muted">
+              Hi {{ user.name }}, this section helps you manage your City Service Hub account.
+            </p>
+            <ul class="text-muted">
+              <li><strong>Profile</strong>: Check your personal details in the Profile tab.</li>
+              <li><strong>Bookings</strong>: Use the My Bookings tab to see and cancel upcoming bookings.</li>
+              <li><strong>Favorites</strong>: Save frequently used services and quickly book from Favorites.</li>
+            </ul>
+            <p class="text-muted mb-1">
+              For any issues with bookings, payments, or incorrect profile details, contact:
+            </p>
+            <p class="mb-0">
+              <strong>Email:</strong> support@cityservicehub.local<br>
+              <strong>Phone:</strong> +91-99999-00000
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    document.querySelectorAll('.remove-favorite-btn').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const serviceId = this.getAttribute('data-service-id');
+        
+        try {
+          const response = await fetch(`/toggle-favorite/${serviceId}/`, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': csrftoken
+            }
+          });
+          
+          const data = await response.json();
+          if(data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.error);
+          }
+        } catch(error) {
+          alert('Error: ' + error.message);
+        }
+      });
+    });
+
+    // Sidebar section switching
+    const userSectionButtons = document.querySelectorAll('[data-section]');
+    const userSections = document.querySelectorAll('.dashboard-section');
+
+    function showUserSection(targetId) {
+      userSections.forEach(sec => {
+        if (sec.id === targetId) {
+          sec.classList.remove('d-none');
+        } else {
+          sec.classList.add('d-none');
+        }
+      });
+    }
+
+    userSectionButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        userSectionButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.getAttribute('data-section');
+        showUserSection(target);
+      });
+    });
+
+    // default to favorites
+    showUserSection('favorites-section');
+  </script>
+
+</body>
+</html>
